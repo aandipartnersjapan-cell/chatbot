@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>チャットボット</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #e9ebee;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* アプリ全体の縦長枠 */
+    .chat-app {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      background-color: #7294c2;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+
+    /* 一番上のヘッダー */
+    .chat-header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    .chat-header-title {
+      font-size: 16px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .header-btn {
+      background-color: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      font-size: 11px;
+      padding: 5px 9px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .header-btn:hover {
+      background-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .header-btn.key-btn {
+      background-color: #f39c12;
+      border-color: #e67e22;
+      font-weight: bold;
+    }
+
+    /* 会話が流れるエリア */
+    .chat-body {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* メッセージの共通行 */
+    .message-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      max-width: 88%;
+    }
+
+    .message-row.bot {
+      align-self: flex-start;
+    }
+
+    .message-row.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    /* アイコン */
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background-color: white;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+
+    /* 吹き出しの箱 */
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.45;
+      word-break: break-word;
+      white-space: pre-wrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .message-row.bot .bubble {
+      background-color: #ffffff;
+      color: #333333;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-row.user .bubble {
+      background-color: #85e25d;
+      color: #111111;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* 送信時刻 */
+    .time {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 2px;
+      flex-shrink: 0;
+    }
+
+    /* 一番下の文字入力エリア */
+    .chat-footer {
+      display: flex;
+      padding: 10px 12px;
+      background-color: #ffffff;
+      gap: 8px;
+      border-top: 1px solid #ddd;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: #27ae60;
+    }
+
+    .send-btn {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .send-btn:hover {
+      background-color: #219150;
+    }
+
+    /* リンクカード（画像・プレビュー風デザイン） */
+    .link-card {
+      display: flex;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      text-decoration: none;
+      color: #1e293b;
+      gap: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      transition: transform 0.15s, background-color 0.15s;
+    }
+
+    .link-card:hover, .link-card:active {
+      background-color: #f1f5f9;
+      transform: translateY(-1px);
+    }
+
+    .link-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: #ffedd5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .link-card-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .link-card-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #0f172a;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .link-card-sub {
+      font-size: 12px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .link-card-arrow {
+      color: #94a3b8;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    /* カギ設定の小窓（モーダル） */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .modal-cancel-btn {
+      background: #eee;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .modal-save-btn {
+      background: #27ae60;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chat-app">
+    <!-- ヘッダー -->
+    <div class="chat-header">
+      <div class="chat-header-title">🤖 AIチャットボット</div>
+      <div class="header-buttons">
+        <button class="header-btn key-btn" id="keyBtn">🔑 カギ設定</button>
+        <button class="header-btn" id="resetBtn">🗑️ 消す</button>
+      </div>
+    </div>
+
+    <!-- 会話表示エリア -->
+    <div class="chat-body" id="chatBody"></div>
+
+    <!-- 入力欄 -->
+    <div class="chat-footer">
+      <input type="text" id="userInput" class="chat-input" placeholder="何でも自由に質問してみてね...">
+      <button id="sendBtn" class="send-btn">送信</button>
+    </div>
+
+    <!-- カギ設定の小窓 -->
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal-content">
+        <div class="modal-title">🔑 Google AIのカギ（APIキー）</div>
+        <div class="modal-desc">Google AI Studioでコピーした新しいカギ（AIzaSy...）をここに貼り付けてください。あなたの端末だけに安全に保存されます。</div>
+        <input type="password" id="apiKeyInput" class="modal-input" placeholder="ここに新しいカギを貼り付け">
+        <div class="modal-buttons">
+          <button class="modal-cancel-btn" id="modalCancel">キャンセル</button>
+          <button class="modal-save-btn" id="modalSave">保存する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chatBody = document.getElementById('chatBody');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const keyBtn = document.getElementById('keyBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const modalCancel = document.getElementById('modalCancel');
+    const modalSave = document.getElementById('modalSave');
+
+    const STORAGE_KEY = 'chatbot_conversation_history';
+    const API_KEY_STORAGE = 'chatbot_gemini_api_key';
+
+    // 現在の時間を取得
+    function getCurrentTime() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+
+    // メッセージ表示（URLをリッチなリンクカードに変換）
+    function appendMessage(sender, text, time = getCurrentTime()) {
+      const row = document.createElement('div');
+      row.className = `message-row ${sender}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = sender === 'bot' ? '🤖' : '👤';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+
+      // URLを抽出してリッチなカードを作成
+      const urlRegex = /(https?:\/\/[^\s\)\>\]]+)/g;
+      const foundUrls = text.match(urlRegex) || [];
+
+      // 吹き出し本文のテキストを設定
+      const textDiv = document.createElement('div');
+      textDiv.textContent = text.replace(urlRegex, '').trim();
+      bubble.appendChild(textDiv);
+
+      // リンクが見つかった場合、カードを追加
+      if (foundUrls.length > 0 && sender === 'bot') {
+        const uniqueUrls = [...new Set(foundUrls)];
+        uniqueUrls.forEach(url => {
+          const card = document.createElement('a');
+          card.href = url;
+          card.target = '_blank';
+          card.className = 'link-card';
+
+          let icon = '🌐';
+          let title = 'リンクを開く';
+          let sub = url;
+
+          if (url.includes('cookpad')) {
+            icon = '🍳';
+            title = 'クックパッド';
+            sub = '日本最大のレシピ検索・投稿サイト';
+          } else if (url.includes('kurashiru')) {
+            icon = '🥕';
+            title = 'クラシル (kurashiru)';
+            sub = 'かんたん美味しい動画レシピが満載';
+          } else if (url.includes('delishkitchen')) {
+            icon = '🥗';
+            title = 'DELISH KITCHEN';
+            sub = '誰でも簡単に作れる毎日のお料理動画';
+          } else if (url.includes('worldbank')) {
+            icon = '🏦';
+            title = '世界銀行 (World Bank)';
+            sub = '世界各国の最新経済データ・統計レポート';
+          } else if (url.includes('imf')) {
+            icon = '📈';
+            title = '国際通貨基金 (IMF)';
+            sub = '世界経済の見通し・成長率予測データ';
+          } else if (url.includes('cao.go.jp') || url.includes('esri')) {
+            icon = '🏛️';
+            title = '内閣府 経済社会総合研究所';
+            sub = '日本の経済見通し・中長期試算レポート';
+          }
+
+          card.innerHTML = `
+            <div class="link-card-icon">${icon}</div>
+            <div class="link-card-info">
+              <div class="link-card-title">${title}</div>
+              <div class="link-card-sub">${sub}</div>
+            </div>
+            <div class="link-card-arrow">›</div>
+          `;
+          bubble.appendChild(card);
+        });
+      }
+
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'time';
+      timeSpan.textContent = time;
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      row.appendChild(timeSpan);
+
+      chatBody.appendChild(row);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      return row;
+    }
+
+    // 会話保存
+    function saveHistory(historyList) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(historyList));
+    }
+
+    // 会話読み込み
+    function loadHistory() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { return null; }
+      }
+      return null;
+    }
+
+    // 初期表示
+    let history = loadHistory();
+    if (history && history.length > 0) {
+      history.forEach(item => {
+        appendMessage(item.sender, item.text, item.time);
+      });
+    } else {
+      history = [];
+      const welcomeText = 'こんにちは！何でも自由に話しかけてみてください。\n料理レシピ、世界のGDPや日本の将来予測など、本物のAIが前後の文脈を覚えて何でもお答えします🤖';
+      appendMessage('bot', welcomeText);
+      history.push({ sender: 'bot', text: welcomeText, time: getCurrentTime() });
+      saveHistory(history);
+    }
+
+    // カギ設定モーダルの開閉
+    keyBtn.addEventListener('click', () => {
+      const currentKey = localStorage.getItem(API_KEY_STORAGE) || '';
+      apiKeyInput.value = currentKey;
+      modalOverlay.style.display = 'flex';
+    });
+
+    modalCancel.addEventListener('click', () => {
+      modalOverlay.style.display = 'none';
+    });
+
+    modalSave.addEventListener('click', () => {
+      const keyVal = apiKeyInput.value.trim();
+      if (keyVal) {
+        localStorage.setItem(API_KEY_STORAGE, keyVal);
+        modalOverlay.style.display = 'none';
+        appendMessage('bot', '新しいカギをセットしました！何でも質問してみてね✨');
+      } else {
+        localStorage.removeItem(API_KEY_STORAGE);
+        modalOverlay.style.display = 'none';
+        appendMessage('bot', 'カギを解除しました。');
+      }
+    });
+
+    // 本物のGoogle Gemini AIに何でも質問する関数（文脈を完璧に理解する）
+    async function askGeminiAI(userText) {
+      const apiKey = localStorage.getItem(API_KEY_STORAGE);
+
+      // カギが未設定の場合
+      if (!apiKey) {
+        return '右上の黄色い「🔑 カギ設定」ボタンを押して、Google AI Studioでコピーした新しいカギ（APIキー）を貼り付けてみてください！本物のAIが動き出します🤖';
+      }
+
+      // 「考え中…」を表示
+      const thinkingRow = appendMessage('bot', 'AIが考え中…💭');
+
+      // 12秒で自動ストップして固まるのを防ぐ安全装置
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      try {
+        const isRecipe = (userText.includes('レシピ') || userText.includes('料理') || userText.includes('作り方') || userText.includes('ご飯') || userText.includes('ごはん'));
+        
+        // AIへの親切な指示
+        const systemInstruction = isRecipe
+          ? `あなたは実用的でわかりやすい料理AIアシスタントです。
+【お願い】
+・一般的な説明や歴史・由来は一切書かないでください！
+・まず一番上に「主な材料」と「3ステップ程度の簡単な手順」を簡潔にまとめてください。
+・そして、以下の人気サイトURLを案内してください：
+https://cookpad.com
+https://www.kurashiru.com
+https://delishkitchen.tv`
+          : `あなたは親切でとても優秀なAIアシスタントです。質問に対して長文にならず、要点を分かりやすく整理して日本語でお答えください。
+会話の流れ（文脈）を大切にして、直前の会話を受けた自然な回答をしてください。
+参考になる公的機関や役立つサイトがある場合は、URLも一緒に紹介してください。`;
+
+        // 過去の会話の流れ（文脈）を組み立てる（エラー文は除外）
+        const contextContents = [];
+        const pastTurns = history.slice(0, -1).slice(-6).filter(h => !h.text.includes('Google AIエラー') && !h.text.includes('考え中') && !h.text.includes('通信エラー'));
+        const firstUserIdx = pastTurns.findIndex(h => h.sender === 'user');
+
+        if (firstUserIdx !== -1) {
+          for (let i = firstUserIdx; i < pastTurns.length; i++) {
+            const h = pastTurns[i];
+            contextContents.push({
+              role: h.sender === 'user' ? 'user' : 'model',
+              parts: [{ text: h.text }]
+            });
+          }
+        }
+
+        // 最新の質問を追加
+        contextContents.push({
+          role: 'user',
+          parts: [{ text: systemInstruction + '\n\n【最新の質問】\n' + userText }]
+        });
+
+        // Google公式推奨の現行モデル（gemini-3.8-flash）を呼び出し
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: contextContents
+          })
+        });
+
+        clearTimeout(timeoutId);
+        const data = await response.json();
+
+        if (data && data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+          const parts = data.candidates[0].content.parts;
+          const answerParts = parts.filter(p => !p.thought && p.text);
+          const finalReply = (answerParts.length > 0 ? answerParts : parts).map(p => p.text).join('\n').trim();
+          return finalReply || '回答を作成できませんでした。もう一度お試しください。';
+        } else if (data && data.error) {
+          if (data.error.code === 429) {
+            return `【本日の無料チケット上限です】\n1日20回の無料枠を使い切りました！\n別のGoogleアカウントで新しいカギを作って右上の「🔑 カギ設定」に貼るか、明日お試しください😊`;
+          }
+          return `Google AIエラー（${data.error.message || '少し時間をおいてお試しください'}）`;
+        } else {
+          return 'AIからの返答を読み取れませんでした。もう一度お試しください。';
+        }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          return 'AIからの応答が時間切れになりました。\n（※現在本日の無料チケットを使い切っているため、新しいカギを入れていただくか明日お試しください😊）';
+        }
+        return `通信エラーが発生しました（${err.message || 'インターネット接続を確認してください'}）`;
+      } finally {
+        if (thinkingRow && thinkingRow.parentNode) {
+          thinkingRow.remove();
+        }
+      }
+    }
+
+    // メッセージ送信処理
+    async function handleSend() {
+      const text = userInput.value.trim();
+      if (text === '') return;
+
+      const time = getCurrentTime();
+
+      // ユーザーのメッセージを表示＆記録
+      appendMessage('user', text, time);
+      history.push({ sender: 'user', text: text, time: time });
+      saveHistory(history);
+
+      userInput.value = '';
+
+      // AIに回答をもらう
+      const aiReply = await askGeminiAI(text);
+      const botTime = getCurrentTime();
+
+      appendMessage('bot', aiReply, botTime);
+      history.push({ sender: 'bot', text: aiReply, time: botTime });
+      saveHistory(history);
+    }
+
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSend();
+    });
+
+    // 会話リセット
+    resetBtn.addEventListener('click', () => {
+      if (confirm('これまでの会話を消して、最初からやり直しますか？（カギの設定は残ります）')) {
+        localStorage.removeItem(STORAGE_KEY);
+        chatBody.innerHTML = '';
+        history = [];
+
+        const welcomeText = '会話をリセットしました！何でも自由に話しかけてみてください🤖';
+        appendMessage('bot', welcomeText);
+        history.push({ sender: 'bot', text: welcomeText, time: getCurrentTime() });
+        saveHistory(history);
+      }
+    });
+  </script>
+
+</body>
+</html>
