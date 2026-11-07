@@ -1,658 +1,422 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>チャットボット</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #e9ebee;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* アプリ全体の縦長枠 */
-    .chat-app {
-      width: 100%;
-      max-width: 480px;
-      height: 100vh;
-      background-color: #7294c2;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
-      position: relative;
-    }
-
-    /* 一番上のヘッダー */
-    .chat-header {
-      background-color: #2c3e50;
-      color: white;
-      padding: 12px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      z-index: 10;
-    }
-
-    .chat-header-title {
-      font-size: 16px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .header-buttons {
-      display: flex;
-      gap: 6px;
-    }
-
-    .header-btn {
-      background-color: rgba(255, 255, 255, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: white;
-      font-size: 11px;
-      padding: 5px 9px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .header-btn:hover {
-      background-color: rgba(255, 255, 255, 0.35);
-    }
-
-    .header-btn.key-btn {
-      background-color: #f39c12;
-      border-color: #e67e22;
-      font-weight: bold;
-    }
-
-    /* 会話が流れるエリア */
-    .chat-body {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    /* メッセージの共通行 */
-    .message-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-      max-width: 88%;
-    }
-
-    .message-row.bot {
-      align-self: flex-start;
-    }
-
-    .message-row.user {
-      align-self: flex-end;
-      flex-direction: row-reverse;
-    }
-
-    /* アイコン */
-    .avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      background-color: white;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      flex-shrink: 0;
-    }
-
-    /* 吹き出しの箱 */
-    .bubble {
-      padding: 10px 14px;
-      border-radius: 16px;
-      font-size: 15px;
-      line-height: 1.45;
-      word-break: break-word;
-      white-space: pre-wrap;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-
-    .message-row.bot .bubble {
-      background-color: #ffffff;
-      color: #333333;
-      border-bottom-left-radius: 4px;
-    }
-
-    .message-row.user .bubble {
-      background-color: #85e25d;
-      color: #111111;
-      border-bottom-right-radius: 4px;
-    }
-
-    /* 送信時刻 */
-    .time {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.85);
-      margin-bottom: 2px;
-      flex-shrink: 0;
-    }
-
-    /* 一番下の文字入力エリア */
-    .chat-footer {
-      display: flex;
-      padding: 10px 12px;
-      background-color: #ffffff;
-      gap: 8px;
-      border-top: 1px solid #ddd;
-    }
-
-    .chat-input {
-      flex: 1;
-      padding: 10px 14px;
-      border: 1px solid #ccc;
-      border-radius: 20px;
-      font-size: 15px;
-      outline: none;
-    }
-
-    .chat-input:focus {
-      border-color: #27ae60;
-    }
-
-    .send-btn {
-      background-color: #27ae60;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 20px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .send-btn:hover {
-      background-color: #219150;
-    }
-
-    /* リンクカード（画像・プレビュー風デザイン） */
-    .link-card {
-      display: flex;
-      align-items: center;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin-top: 8px;
-      text-decoration: none;
-      color: #1e293b;
-      gap: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      transition: transform 0.15s, background-color 0.15s;
-    }
-
-    .link-card:hover, .link-card:active {
-      background-color: #f1f5f9;
-      transform: translateY(-1px);
-    }
-
-    .link-card-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: #ffedd5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      flex-shrink: 0;
-    }
-
-    .link-card-info {
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .link-card-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: #0f172a;
-      margin-bottom: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .link-card-sub {
-      font-size: 12px;
-      color: #64748b;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .link-card-arrow {
-      color: #94a3b8;
-      font-size: 16px;
-      font-weight: bold;
-    }
-
-    /* カギ設定の小窓（モーダル） */
-    .modal-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-      padding: 20px;
-    }
-
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 360px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    .modal-title {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 8px;
-      color: #333;
-    }
-
-    .modal-desc {
-      font-size: 13px;
-      color: #666;
-      margin-bottom: 12px;
-      line-height: 1.4;
-    }
-
-    .modal-input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 13px;
-      margin-bottom: 14px;
-    }
-
-    .modal-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    .modal-cancel-btn {
-      background: #eee;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-
-    .modal-save-btn {
-      background: #27ae60;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 13px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ボイスAI通話</title>
+<style>
+  :root { --bg:#1a1a1a; --bar:#232323; --text:#f4f4f5; --sub:#a1a1aa; --blue:#0b5cff; --red:#e0243c; --green:#22c55e; --card:#2d2d2f; }
+  * { box-sizing:border-box; }
+  html,body { height:100%; margin:0; }
+  body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif; }
+  #app { height:100vh; height:100dvh; max-width:980px; margin:0 auto; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+  #top { display:flex; align-items:center; gap:8px; padding:10px 14px; font-size:.85rem; color:var(--sub); }
+  #top .dot { width:8px; height:8px; border-radius:50%; background:var(--green); }
+  #top b { color:var(--text); font-weight:600; }
+  #timer { margin-left:auto; font-variant-numeric:tabular-nums; }
+  #stage { flex:1; min-height:0; position:relative; padding:0 10px; }
+  #tile { position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; background:#000; box-shadow:0 0 0 3px transparent; transition:box-shadow .2s; }
+  #tile:has(#avatar.talk) { box-shadow:0 0 0 3px var(--green); }
+  #avatar { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#222; overflow:hidden; }
+  #avatar::after { content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(circle at 30% 22%, rgba(255,255,255,.22), rgba(255,255,255,0) 55%), radial-gradient(circle at 70% 100%, rgba(0,0,0,.18), rgba(0,0,0,0) 60%); }
+  #avatar svg { width:100%; height:100%; display:block; transform-origin:50% 100%; animation:breathe 4s ease-in-out infinite; }
+  #avatar[data-s="listening"] svg { animation:tilt 2.6s ease-in-out infinite; }
+  #avatar.talk svg { animation:bob .5s ease-in-out infinite alternate; }
+  #avatar .eyes, #avatar .mouth { transform-box:fill-box; transform-origin:center; }
+  #avatar .eyes { animation:blink 4.5s infinite; }
+  #avatar.talk .mouth { animation:mouth .22s infinite alternate; }
+  @keyframes blink { 0%,95%,100%{transform:scaleY(1)} 97.5%{transform:scaleY(.1)} }
+  @keyframes mouth { from{transform:scaleY(.4)} to{transform:scaleY(1.9)} }
+  @keyframes breathe { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-1.5px) scale(1.025)} }
+  @keyframes tilt { 0%,100%{transform:rotate(-2deg)} 50%{transform:rotate(2deg)} }
+  @keyframes bob { from{transform:translateY(0) rotate(-.8deg)} to{transform:translateY(-2px) rotate(.8deg)} }
+  .layers { position:relative; width:100%; height:100%; }
+  .layers img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+  .layers .ly { opacity:0; }
+  .layers .ly.on { opacity:1; }
+  #nameTag { position:absolute; left:10px; bottom:10px; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:6px; font-size:.85rem; z-index:2; }
+  #caption { position:absolute; left:12px; right:12px; bottom:48px; max-height:38%; overflow:auto; text-align:center; background:rgba(0,0,0,.72); border-radius:8px; padding:8px 12px; line-height:1.55; z-index:2; }
+  #caption:empty { display:none; }
+  #status { position:absolute; top:10px; left:50%; transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,.65); padding:5px 12px; border-radius:999px; font-size:.85rem; z-index:3; text-align:center; }
+  #status:empty { display:none; }
+  #self { position:absolute; right:20px; top:12px; width:26%; max-width:132px; min-width:84px; aspect-ratio:3/4; border-radius:10px; overflow:hidden; background:#3a3a3d; border:2px solid #111; display:flex; align-items:center; justify-content:center; z-index:3; }
+  #self.hear { border-color:var(--blue); }
+  #selfInit { width:44px; height:44px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; font-weight:700; }
+  #selfVideo { display:none; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  #selfLabel { position:absolute; left:6px; bottom:5px; font-size:.7rem; background:rgba(0,0,0,.55); padding:1px 6px; border-radius:4px; }
+  #bar { display:flex; justify-content:center; gap:4px; padding:8px 6px calc(10px + env(safe-area-inset-bottom)); background:var(--bar); }
+  .cb { background:none; border:0; color:var(--text); display:flex; flex-direction:column; align-items:center; gap:3px; min-width:54px; padding:6px 6px; border-radius:8px; cursor:pointer; font-size:.68rem; font-family:inherit; }
+  .cb:hover { background:#333; }
+  .cb .ic { font-size:22px; line-height:1.1; min-height:24px; }
+  .cb.off .ic, .cb.off .lb { color:#f87171; }
+  .cb.leave { background:var(--red); color:#fff; min-width:62px; }
+  .cb.leave:hover { background:#c01d33; }
+  #chat { position:absolute; top:0; right:0; bottom:0; width:min(360px,100%); background:#1f1f21; border-left:1px solid #333; display:none; flex-direction:column; z-index:6; }
+  #chat.open { display:flex; }
+  .ch { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #333; }
+  .x { background:none; border:0; color:var(--text); font-size:18px; cursor:pointer; }
+  #log { flex:1; overflow-y:auto; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+  .msg { max-width:88%; padding:8px 12px; border-radius:12px; line-height:1.55; white-space:pre-wrap; word-break:break-word; font-size:.92rem; }
+  .user { align-self:flex-end; background:var(--blue); }
+  .bot { align-self:flex-start; background:var(--card); }
+  .hint { color:var(--sub); text-align:center; font-size:.85rem; margin:auto; }
+  .textrow { display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid #333; }
+  #text { flex:1; background:var(--card); color:var(--text); border:0; border-radius:8px; padding:10px 12px; font-size:16px; }
+  #send { background:var(--blue); color:#fff; border:0; border-radius:8px; padding:8px 14px; cursor:pointer; }
+  #join { position:absolute; inset:0; background:rgba(10,10,10,.82); display:flex; align-items:center; justify-content:center; z-index:10; }
+  .joinbox { background:#232323; border-radius:16px; padding:22px; width:min(340px,90%); text-align:center; }
+  .joinbox h1 { font-size:1.1rem; margin:0 0 6px; }
+  .sm { color:var(--sub); font-size:.8rem; line-height:1.6; margin:8px 0; }
+  #who { width:100%; background:var(--card); color:var(--text); border:0; border-radius:8px; padding:10px; font-size:16px; margin:6px 0 12px; }
+  #joinBtn { width:100%; background:var(--blue); color:#fff; border:0; border-radius:10px; padding:12px; font-size:1rem; font-weight:600; cursor:pointer; }
+  @media (max-width:480px) { #crole { display:none; } .cb { min-width:46px; padding:6px 3px; } }
+</style>
 </head>
 <body>
-
-  <div class="chat-app">
-    <!-- ヘッダー -->
-    <div class="chat-header">
-      <div class="chat-header-title">🤖 AIチャットボット</div>
-      <div class="header-buttons">
-        <button class="header-btn key-btn" id="keyBtn">🔑 カギ設定</button>
-        <button class="header-btn" id="resetBtn">🗑️ 消す</button>
-      </div>
+<div id="app">
+  <div id="top"><span class="dot"></span><b id="cname"></b><span id="crole"></span><span id="timer">00:00</span></div>
+  <div id="stage">
+    <div id="tile">
+      <div id="avatar"></div>
+      <div id="caption"></div>
+      <div id="nameTag"><span id="nameText"></span></div>
     </div>
-
-    <!-- 会話表示エリア -->
-    <div class="chat-body" id="chatBody"></div>
-
-    <!-- 入力欄 -->
-    <div class="chat-footer">
-      <input type="text" id="userInput" class="chat-input" placeholder="何でも自由に質問してみてね...">
-      <button id="sendBtn" class="send-btn">送信</button>
-    </div>
-
-    <!-- カギ設定の小窓 -->
-    <div class="modal-overlay" id="modalOverlay">
-      <div class="modal-content">
-        <div class="modal-title">🔑 Google AIのカギ（APIキー）</div>
-        <div class="modal-desc">Google AI Studioでコピーした新しいカギ（AIzaSy...）をここに貼り付けてください。あなたの端末だけに安全に保存されます。</div>
-        <input type="password" id="apiKeyInput" class="modal-input" placeholder="ここに新しいカギを貼り付け">
-        <div class="modal-buttons">
-          <button class="modal-cancel-btn" id="modalCancel">キャンセル</button>
-          <button class="modal-save-btn" id="modalSave">保存する</button>
-        </div>
-      </div>
+    <div id="status"></div>
+    <div id="self"><div id="selfInit">あ</div><video id="selfVideo" autoplay muted playsinline></video><span id="selfLabel">あなた</span></div>
+  </div>
+  <div id="bar">
+    <button class="cb" id="micBtn"><span class="ic">🎤</span><span class="lb">ミュート</span></button>
+    <button class="cb off" id="camBtn"><span class="ic">📷</span><span class="lb">ビデオ開始</span></button>
+    <button class="cb" id="spkBtn"><span class="ic">🔊</span><span class="lb">音声</span></button>
+    <button class="cb" id="ccBtn"><span class="ic">CC</span><span class="lb">字幕</span></button>
+    <button class="cb" id="chatBtn"><span class="ic">💬</span><span class="lb">チャット</span></button>
+    <button class="cb leave" id="leaveBtn"><span class="ic">✕</span><span class="lb">退出</span></button>
+  </div>
+  <div id="chat">
+    <div class="ch"><b>チャット</b><button class="x" id="chatClose" aria-label="閉じる">✕</button></div>
+    <div id="log"></div>
+    <div class="textrow"><input id="text" type="text" placeholder="文字でも質問できます"><button id="send">送信</button></div>
+  </div>
+  <div id="join">
+    <div class="joinbox">
+      <h1>ボイスAI通話</h1>
+      <div class="sm">話したい相手を選んでください。</div>
+      <select id="who" aria-label="キャラクター"></select>
+      <button id="joinBtn">通話に参加</button>
+      <div class="sm">マイクの使用を許可してください。カメラはオフのままでも参加できます。カメラの映像は、この画面に映すだけで、外には送られません。</div>
     </div>
   </div>
+</div>
 
-  <script>
-    const chatBody = document.getElementById('chatBody');
-    const userInput = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const resetBtn = document.getElementById('resetBtn');
+<script>
+  // キーは Cloudflare Worker の中にだけあります
+  const WORKER_URL = 'https://chatbot-api.aandipartners-japan.workers.dev';
 
-    const keyBtn = document.getElementById('keyBtn');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    const modalCancel = document.getElementById('modalCancel');
-    const modalSave = document.getElementById('modalSave');
+  const $ = id => document.getElementById(id);
+  const log = $('log'), statusEl = $('status');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    const STORAGE_KEY = 'chatbot_conversation_history';
-    const API_KEY_STORAGE = 'chatbot_gemini_api_key';
 
-    // 現在の時間を取得
-    function getCurrentTime() {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      return `${hours}:${minutes}`;
-    }
+  // ===== キャラクターのイラスト（SVG・ほのぼのマンガ調） =====
+  const ART = [
+    // 桜井ことは
+    `<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#fff3c4"/>
+      <g stroke="#3a2a22" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M30 52 Q10 60 14 92 Q22 98 28 86 Q30 70 36 60Z" fill="#7a4a2a"/><path d="M90 52 Q110 60 106 92 Q98 98 92 86 Q90 70 84 60Z" fill="#7a4a2a"/>
+      <path d="M26 124 Q28 98 60 96 Q92 98 94 124Z" fill="#7ed6b5"/>
+      <rect x="54" y="86" width="12" height="13" fill="#ffe6cc"/>
+      <circle cx="60" cy="58" r="32" fill="#ffe6cc"/>
+      <path d="M28 56 Q26 24 60 24 Q94 24 92 56 Q82 40 66 40 Q48 36 40 46 Q34 48 28 56Z" fill="#7a4a2a"/>
+      <path d="M30 52 L21 46 L21 59Z M30 52 L39 46 L39 59Z" fill="#ffd23f"/><path d="M90 52 L81 46 L81 59Z M90 52 L99 46 L99 59Z" fill="#ffd23f"/>
+      </g>
+      <ellipse cx="40" cy="72" rx="5" ry="3.2" fill="#ff9d8a" opacity=".7"/><ellipse cx="80" cy="72" rx="5" ry="3.2" fill="#ff9d8a" opacity=".7"/>
+      <path d="M37 69 l2 4 M41 69 l2 4 M77 69 l2 4 M81 69 l2 4" stroke="#e0705f" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M41 50 Q48 46 55 50M65 50 Q72 46 79 50" stroke="#3a2a22" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <g class="eyes"><ellipse cx="48" cy="60" rx="2.8" ry="4" fill="#2b1d17"/><ellipse cx="72" cy="60" rx="2.8" ry="4" fill="#2b1d17"/><circle cx="47" cy="58.5" r="1.1" fill="#fff"/><circle cx="71" cy="58.5" r="1.1" fill="#fff"/></g>
+      <g class="mouth"><ellipse cx="60" cy="76" rx="5" ry="3" fill="#b5413d" stroke="#3a2a22" stroke-width="1.2"/></g></svg>`,
+    // 神谷剛
+    `<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#f2e4cf"/>
+      <g stroke="#3a2a22" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M24 124 Q26 98 60 96 Q94 98 96 124Z" fill="#b5835a"/><path d="M46 98 L74 98 L72 124 L48 124Z" fill="#fffaf0"/>
+      <rect x="54" y="86" width="12" height="13" fill="#f6d5b5"/>
+      <circle cx="60" cy="58" r="32" fill="#f6d5b5"/>
+      <path d="M30 50 Q22 52 24 66 Q30 62 32 56Z" fill="#cfcfd6"/><path d="M90 50 Q98 52 96 66 Q90 62 88 56Z" fill="#cfcfd6"/>
+      <path d="M34 36 Q60 22 86 36 Q60 30 34 36Z" fill="#cfcfd6"/>
+      <circle cx="60" cy="68" r="2.6" fill="#eab08e"/>
+      <path d="M44 74 Q52 68 60 72 Q68 68 76 74 Q68 80 60 77 Q52 80 44 74Z" fill="#cfcfd6"/>
+      </g>
+      <ellipse cx="38" cy="70" rx="4.5" ry="3" fill="#f2a58d" opacity=".6"/><ellipse cx="82" cy="70" rx="4.5" ry="3" fill="#f2a58d" opacity=".6"/>
+      <path d="M40 46 Q48 42 56 46M64 46 Q72 42 80 46" stroke="#9a9aa6" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <g class="eyes"><ellipse cx="48" cy="58" rx="2.2" ry="3" fill="#2b1d17"/><ellipse cx="72" cy="58" rx="2.2" ry="3" fill="#2b1d17"/></g>
+      <g fill="rgba(255,255,255,.35)" stroke="#3a2a22" stroke-width="1.8"><circle cx="48" cy="58" r="9"/><circle cx="72" cy="58" r="9"/><path d="M57 58 H63"/></g>
+      <g class="mouth"><ellipse cx="60" cy="84" rx="4.5" ry="2.6" fill="#b5413d" stroke="#3a2a22" stroke-width="1.2"/></g></svg>`,
+    // ロボ太
+    `<svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#d6eef7"/>
+      <g stroke="#3a2a22" stroke-width="1.8" stroke-linejoin="round">
+      <rect x="32" y="96" width="56" height="34" rx="8" fill="#9db4c4"/><circle cx="60" cy="110" r="5" fill="#ffd23f"/>
+      <rect x="54" y="86" width="12" height="12" fill="#7f95a8"/>
+      <line x1="60" y1="26" x2="60" y2="12" stroke-linecap="round"/><circle cx="60" cy="10" r="5" fill="#ff7a7a"/>
+      <rect x="26" y="26" width="68" height="62" rx="14" fill="#c9d9e4"/>
+      <circle cx="24" cy="58" r="4" fill="#9db4c4"/><circle cx="96" cy="58" r="4" fill="#9db4c4"/>
+      </g>
+      <circle cx="36" cy="70" r="4.5" fill="#ff9d8a" opacity=".7"/><circle cx="84" cy="70" r="4.5" fill="#ff9d8a" opacity=".7"/>
+      <g class="eyes"><g stroke="#3a2a22" stroke-width="1.8"><circle cx="46" cy="54" r="9" fill="#fff"/><circle cx="74" cy="54" r="9" fill="#fff"/></g><circle cx="46" cy="55" r="4" fill="#2b1d17"/><circle cx="74" cy="55" r="4" fill="#2b1d17"/><circle cx="44.5" cy="53.5" r="1.3" fill="#fff"/><circle cx="72.5" cy="53.5" r="1.3" fill="#fff"/></g>
+      <g class="mouth"><rect x="50" y="72" width="20" height="7" rx="3" fill="#b5413d" stroke="#3a2a22" stroke-width="1.5"/></g></svg>`
+  ];
 
-    // メッセージ表示（URLをリッチなリンクカードに変換）
-    function appendMessage(sender, text, time = getCurrentTime()) {
-      const row = document.createElement('div');
-      row.className = `message-row ${sender}`;
+  // ===== 架空のキャラクター（ここを書き換えると自分のキャラを作れます） =====
+  const CHARACTERS = [
+    { name:'桜井 ことは', role:'25歳・明るい案内役', avatar:'👩',
+      // 画像を使うときは、次の行の「//」を消します：
+      // img:{ base:'img/kotoha.png', mouth:'img/kotoha_mouth.png', blink:'img/kotoha_blink.png' }, pitch:1.35, rate:1.05,
+      greeting:'こんにちは！桜井ことはです。今日は何でも聞いてくださいね。',
+      prompt:'あなたは「桜井ことは」という25歳の架空の女性です。明るく元気で、親しみやすく、少しおっちょこちょいな性格です。友だちに話すような、やわらかい話し言葉で話します。' },
+    { name:'神谷 剛', role:'52歳・喫茶店のマスター', avatar:'👨‍🦳', pitch:0.75, rate:0.92,
+      greeting:'いらっしゃい。神谷です。コーヒーでも飲みながら、ゆっくり話しましょうか。',
+      prompt:'あなたは「神谷剛」という52歳の架空の男性で、小さな町の喫茶店のマスターです。落ち着いていて穏やか、聞き上手で、ときどき人生経験にもとづく一言を添えます。丁寧だけど堅すぎない話し方をします。' },
+    { name:'ロボ太', role:'陽気なおしゃべりロボット', avatar:'🤖', pitch:1.1, rate:1.1,
+      greeting:'ピピッ！ロボ太だよ。なんでも聞いてほしいロ！',
+      prompt:'あなたは「ロボ太」という陽気で好奇心旺盛な架空のロボットです。文の終わりに、ときどき「ロ」をつけて話します。ちょっと自慢げですが、憎めない性格です。' }
+  ];
+  let cur = CHARACTERS[0];
+  const hintHTML = () => '<div class="hint" id="hint">' + cur.name + 'さんとの会話が、ここに残ります。</div>';
+  // 画像モード用：キャラクターに img を設定すると、イラスト画像で口パク・まばたきをします
+  function buildAvatar(i) {
+    const av = $('avatar'), c = CHARACTERS[i];
+    if (!c.img) { av.innerHTML = ART[i]; return; }
+    av.innerHTML = '<div class="layers"><img class="base" alt="' + c.name + '" src="' + c.img.base + '">' +
+      '<img class="ly mouthL" alt="" src="' + c.img.mouth + '"><img class="ly blinkL" alt="" src="' + c.img.blink + '"></div>';
+    av.querySelector('.base').onerror = () => { av.innerHTML = ART[i]; };   // 画像が無ければ今のイラストに戻す
+  }
+  setInterval(() => {   // 話している間、口の画像を点滅させる
+    const av = $('avatar'), m = av.querySelector('.mouthL');
+    if (m) m.classList.toggle('on', av.classList.contains('talk') && !m.classList.contains('on'));
+  }, 140);
+  setInterval(() => {   // まばたき
+    const b = $('avatar').querySelector('.blinkL');
+    if (b) { b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 130); }
+  }, 4000);
 
-      const avatar = document.createElement('div');
-      avatar.className = 'avatar';
-      avatar.textContent = sender === 'bot' ? '🤖' : '👤';
+  function applyChar(i) {
+    cur = CHARACTERS[i];
+    buildAvatar(i);
+    $('cname').textContent = cur.name;
+    $('crole').textContent = cur.role;
+    $('nameText').textContent = cur.name;
+    const bg = (ART[i].match(/fill="(#[0-9a-fA-F]{3,6})"/) || [])[1];
+    if (bg) $('avatar').style.background = bg;
+    log.innerHTML = hintHTML();
+  }
+  CHARACTERS.forEach((c, i) => { const o = document.createElement('option'); o.value = i; o.textContent = c.name; $('who').appendChild(o); });
 
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
+  let active = false;      // 会話モード中か
+  let muted = false;       // 声で答えるか
+  let busy = false;        // AIが考え中か
+  let recog = null;
+  let history = [];        // {role:'user'|'model', text}
 
-      // URLを抽出してリッチなカードを作成
-      const urlRegex = /(https?:\/\/[^\s\)\>\]]+)/g;
-      const foundUrls = text.match(urlRegex) || [];
+  function setState(cls, msg) { statusEl.textContent = msg || ''; $('avatar').dataset.s = cls || ''; $('self').classList.toggle('hear', cls === 'listening'); }
 
-      // 吹き出し本文のテキストを設定
-      const textDiv = document.createElement('div');
-      textDiv.textContent = text.replace(urlRegex, '').trim();
-      bubble.appendChild(textDiv);
+  function addMsg(who, text) {
+    const h = $('hint'); if (h) h.remove();
+    const d = document.createElement('div');
+    d.className = 'msg ' + who;
+    d.textContent = text;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+  }
 
-      // リンクが見つかった場合、カードを追加
-      if (foundUrls.length > 0 && sender === 'bot') {
-        const uniqueUrls = [...new Set(foundUrls)];
-        uniqueUrls.forEach(url => {
-          const card = document.createElement('a');
-          card.href = url;
-          card.target = '_blank';
-          card.className = 'link-card';
+  // ---- AIに質問 ----
+  async function ask(userText) {
+    const instruction =
+      cur.prompt + '\n' +
+      '声で会話しているので、日本語の話し言葉で、2〜3文以内で簡潔に答えてください。記号・箇条書き・URL・絵文字は使わないでください。' +
+      '相手に本当にAIかどうか聞かれたときだけは、AIが演じているキャラクターだと正直に答えてください。';
+    const contents = history.slice(-6).map(h => ({ role: h.role, parts: [{ text: h.text }] }));
+    contents.push({ role: 'user', parts: [{ text: instruction + '\n\n【質問】\n' + userText }] });
 
-          let icon = '🌐';
-          let title = 'リンクを開く';
-          let sub = url;
-
-          if (url.includes('cookpad')) {
-            icon = '🍳';
-            title = 'クックパッド';
-            sub = '日本最大のレシピ検索・投稿サイト';
-          } else if (url.includes('kurashiru')) {
-            icon = '🥕';
-            title = 'クラシル (kurashiru)';
-            sub = 'かんたん美味しい動画レシピが満載';
-          } else if (url.includes('delishkitchen')) {
-            icon = '🥗';
-            title = 'DELISH KITCHEN';
-            sub = '誰でも簡単に作れる毎日のお料理動画';
-          } else if (url.includes('worldbank')) {
-            icon = '🏦';
-            title = '世界銀行 (World Bank)';
-            sub = '世界各国の最新経済データ・統計レポート';
-          } else if (url.includes('imf')) {
-            icon = '📈';
-            title = '国際通貨基金 (IMF)';
-            sub = '世界経済の見通し・成長率予測データ';
-          } else if (url.includes('cao.go.jp') || url.includes('esri')) {
-            icon = '🏛️';
-            title = '内閣府 経済社会総合研究所';
-            sub = '日本の経済見通し・中長期試算レポート';
-          }
-
-          card.innerHTML = `
-            <div class="link-card-icon">${icon}</div>
-            <div class="link-card-info">
-              <div class="link-card-title">${title}</div>
-              <div class="link-card-sub">${sub}</div>
-            </div>
-            <div class="link-card-arrow">›</div>
-          `;
-          bubble.appendChild(card);
-        });
+    let timer;
+    const timeout = new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('時間切れ')), 15000); });
+    try {
+      const res = await Promise.race([
+        fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents }) }),
+        timeout
+      ]);
+      const data = await res.json();
+      const parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
+      if (parts) {
+        const ans = parts.filter(p => !p.thought && p.text).map(p => p.text).join('').trim();
+        if (ans) return ans;
       }
+      if (data && data.error && data.error.code === 429) return '今日の無料の回数を使い切りました。また明日お試しください。';
+      return 'うまく答えを作れませんでした。もう一度お願いします。';
+    } catch (e) {
+      return '通信に失敗しました。（' + e.message + '）';
+    } finally { clearTimeout(timer); }
+  }
 
-      const timeSpan = document.createElement('span');
-      timeSpan.className = 'time';
-      timeSpan.textContent = time;
-
-      row.appendChild(avatar);
-      row.appendChild(bubble);
-      row.appendChild(timeSpan);
-
-      chatBody.appendChild(row);
-      chatBody.scrollTop = chatBody.scrollHeight;
-      return row;
-    }
-
-    // 会話保存
-    function saveHistory(historyList) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(historyList));
-    }
-
-    // 会話読み込み
-    function loadHistory() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) { return null; }
-      }
-      return null;
-    }
-
-    // 初期表示
-    let history = loadHistory();
-    if (history && history.length > 0) {
-      history.forEach(item => {
-        appendMessage(item.sender, item.text, item.time);
-      });
-    } else {
-      history = [];
-      const welcomeText = 'こんにちは！何でも自由に話しかけてみてください。\n料理レシピ、世界のGDPや日本の将来予測など、本物のAIが前後の文脈を覚えて何でもお答えします🤖';
-      appendMessage('bot', welcomeText);
-      history.push({ sender: 'bot', text: welcomeText, time: getCurrentTime() });
-      saveHistory(history);
-    }
-
-    // カギ設定モーダルの開閉
-    keyBtn.addEventListener('click', () => {
-      const currentKey = localStorage.getItem(API_KEY_STORAGE) || '';
-      apiKeyInput.value = currentKey;
-      modalOverlay.style.display = 'flex';
+  // ---- 声で読み上げ ----
+  function speak(text) {
+    return new Promise(resolve => {
+      if (muted || !('speechSynthesis' in window)) return resolve();
+      const clean = text.replace(/https?:\/\/\S+/g, '').replace(/[*#`>_~\-]{1,}/g, ' ');
+      const u = new SpeechSynthesisUtterance(clean);
+      u.lang = 'ja-JP';
+      u.pitch = cur.pitch; u.rate = cur.rate;
+      const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('ja'));
+      if (v) u.voice = v;
+      u.onstart = () => $('avatar').classList.add('talk');
+      u.onend = u.onerror = () => { $('avatar').classList.remove('talk'); resolve(); };
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
     });
+  }
 
-    modalCancel.addEventListener('click', () => {
-      modalOverlay.style.display = 'none';
-    });
+  // ---- 1回のやりとり ----
+  async function handle(userText) {
+    if (!userText) return;
+    busy = true;
+    addMsg('user', userText);
+    $('caption').textContent = '';
+    setState('thinking', '考え中…');
+    const ans = await ask(userText);
+    history.push({ role: 'user', text: userText }, { role: 'model', text: ans });
+    addMsg('bot', ans);
+    showCaption(ans);
+    setState('speaking', '');
+    await speak(ans);
+    clearCaptionLater();
+    busy = false;
+    if (active) listen(); else setState('', '');
+  }
 
-    modalSave.addEventListener('click', () => {
-      const keyVal = apiKeyInput.value.trim();
-      if (keyVal) {
-        localStorage.setItem(API_KEY_STORAGE, keyVal);
-        modalOverlay.style.display = 'none';
-        appendMessage('bot', '新しいカギをセットしました！何でも質問してみてね✨');
-      } else {
-        localStorage.removeItem(API_KEY_STORAGE);
-        modalOverlay.style.display = 'none';
-        appendMessage('bot', 'カギを解除しました。');
+  // ---- 聞き取り ----
+  function listen() {
+    if (!SR) { setState('', 'このブラウザは音声入力に対応していません。文字で入力してください。'); active = false; return; }
+    if (!active || busy) return;
+    recog = new SR();
+    recog.lang = 'ja-JP';
+    recog.interimResults = true;
+    recog.continuous = false;
+    let finalText = '';
+    recog.onstart = () => setState('listening', '聞いています…（話してください）');
+    recog.onresult = e => {
+      let t = '';
+      for (const r of e.results) t += r[0].transcript;
+      finalText = t;
+      statusEl.textContent = t;
+    };
+    recog.onerror = e => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        active = false; setMicUI(false); setState('', 'マイクの使用が許可されていません。ブラウザの設定で許可してください。');
       }
-    });
+    };
+    recog.onend = () => {
+      if (!active) return;
+      if (finalText.trim()) handle(finalText.trim());
+      else setTimeout(listen, 300);   // 無音なら聞き直し
+    };
+    try { recog.start(); } catch (e) {}
+  }
 
-    // 本物のGoogle Gemini AIに何でも質問する関数（文脈を完璧に理解する）
-    async function askGeminiAI(userText) {
-      const apiKey = localStorage.getItem(API_KEY_STORAGE);
+  function stopAll() {
+    active = false;
+    try { recog && recog.abort(); } catch (e) {}
+    speechSynthesis.cancel();
+    busy = false;
+    setState('', '');
+  }
 
-      // カギが未設定の場合
-      if (!apiKey) {
-        return '右上の黄色い「🔑 カギ設定」ボタンを押して、Google AI Studioでコピーした新しいカギ（APIキー）を貼り付けてみてください！本物のAIが動き出します🤖';
-      }
+  // ---- 通話画面のしくみ ----
+  let inCall = false, ccOn = true, camStream = null, timerId = null, t0 = 0, capTimer = null;
+  const two = n => String(n).padStart(2, '0');
+  function startTimer() {
+    t0 = Date.now(); $('timer').textContent = '00:00'; clearInterval(timerId);
+    timerId = setInterval(() => { const t = Math.floor((Date.now() - t0) / 1000); $('timer').textContent = two(Math.floor(t / 60)) + ':' + two(t % 60); }, 1000);
+  }
+  function showCaption(t) { clearTimeout(capTimer); $('caption').textContent = ccOn ? t : ''; }
+  function clearCaptionLater() { clearTimeout(capTimer); capTimer = setTimeout(() => { $('caption').textContent = ''; }, 2500); }
+  function setBtn(id, on, iconOn, iconOff, lbOn, lbOff) {
+    const b = $(id); b.classList.toggle('off', !on);
+    if (iconOn) b.querySelector('.ic').textContent = on ? iconOn : iconOff;
+    b.querySelector('.lb').textContent = on ? lbOn : lbOff;
+  }
+  function setMicUI(on) { setBtn('micBtn', on, '🎤', '🔇', 'ミュート', 'ミュート解除'); }
 
-      // 「考え中…」を表示
-      const thinkingRow = appendMessage('bot', 'AIが考え中…💭');
+  function startCall() {
+    $('join').style.display = 'none';
+    inCall = true; active = true; setMicUI(true); startTimer();
+    // iPhone対策：タップ直後に無音の読み上げを1回して、声を使えるようにする
+    try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    busy = true;
+    addMsg('bot', cur.greeting); showCaption(cur.greeting);
+    setState('speaking', '');
+    speak(cur.greeting).then(() => { busy = false; clearCaptionLater(); listen(); });
+  }
 
-      // 12秒で自動ストップして固まるのを防ぐ安全装置
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+  function stopCam() {
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+    $('selfVideo').srcObject = null; $('selfVideo').style.display = 'none'; $('selfInit').style.display = 'flex';
+    setBtn('camBtn', false, '📷', '📷', 'ビデオ停止', 'ビデオ開始');
+  }
 
-      try {
-        const isRecipe = (userText.includes('レシピ') || userText.includes('料理') || userText.includes('作り方') || userText.includes('ご飯') || userText.includes('ごはん'));
-        
-        // AIへの親切な指示
-        const systemInstruction = isRecipe
-          ? `あなたは実用的でわかりやすい料理AIアシスタントです。
-【お願い】
-・一般的な説明や歴史・由来は一切書かないでください！
-・まず一番上に「主な材料」と「3ステップ程度の簡単な手順」を簡潔にまとめてください。
-・そして、以下の人気サイトURLを案内してください：
-https://cookpad.com
-https://www.kurashiru.com
-https://delishkitchen.tv`
-          : `あなたは親切でとても優秀なAIアシスタントです。質問に対して長文にならず、要点を分かりやすく整理して日本語でお答えください。
-会話の流れ（文脈）を大切にして、直前の会話を受けた自然な回答をしてください。
-参考になる公的機関や役立つサイトがある場合は、URLも一緒に紹介してください。`;
+  $('joinBtn').addEventListener('click', startCall);
+  $('who').addEventListener('change', e => applyChar(+e.target.value));
 
-        // 過去の会話の流れ（文脈）を組み立てる（エラー文は除外）
-        const contextContents = [];
-        const pastTurns = history.slice(0, -1).slice(-6).filter(h => !h.text.includes('Google AIエラー') && !h.text.includes('考え中') && !h.text.includes('通信エラー'));
-        const firstUserIdx = pastTurns.findIndex(h => h.sender === 'user');
+  $('micBtn').addEventListener('click', () => {
+    if (!inCall) return;
+    if (active) { active = false; try { recog && recog.abort(); } catch (e) {} setState('', ''); setMicUI(false); }
+    else { active = true; setMicUI(true); listen(); }
+  });
 
-        if (firstUserIdx !== -1) {
-          for (let i = firstUserIdx; i < pastTurns.length; i++) {
-            const h = pastTurns[i];
-            contextContents.push({
-              role: h.sender === 'user' ? 'user' : 'model',
-              parts: [{ text: h.text }]
-            });
-          }
-        }
-
-        // 最新の質問を追加
-        contextContents.push({
-          role: 'user',
-          parts: [{ text: systemInstruction + '\n\n【最新の質問】\n' + userText }]
-        });
-
-        // Google公式推奨の現行モデル（gemini-3.8-flash）を呼び出し
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: contextContents
-          })
-        });
-
-        clearTimeout(timeoutId);
-        const data = await response.json();
-
-        if (data && data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
-          const parts = data.candidates[0].content.parts;
-          const answerParts = parts.filter(p => !p.thought && p.text);
-          const finalReply = (answerParts.length > 0 ? answerParts : parts).map(p => p.text).join('\n').trim();
-          return finalReply || '回答を作成できませんでした。もう一度お試しください。';
-        } else if (data && data.error) {
-          if (data.error.code === 429) {
-            return `【本日の無料チケット上限です】\n1日20回の無料枠を使い切りました！\n別のGoogleアカウントで新しいカギを作って右上の「🔑 カギ設定」に貼るか、明日お試しください😊`;
-          }
-          return `Google AIエラー（${data.error.message || '少し時間をおいてお試しください'}）`;
-        } else {
-          return 'AIからの返答を読み取れませんでした。もう一度お試しください。';
-        }
-      } catch (err) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          return 'AIからの応答が時間切れになりました。\n（※現在本日の無料チケットを使い切っているため、新しいカギを入れていただくか明日お試しください😊）';
-        }
-        return `通信エラーが発生しました（${err.message || 'インターネット接続を確認してください'}）`;
-      } finally {
-        if (thinkingRow && thinkingRow.parentNode) {
-          thinkingRow.remove();
-        }
-      }
+  $('camBtn').addEventListener('click', async () => {
+    if (camStream) return stopCam();
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      $('selfVideo').srcObject = camStream; $('selfVideo').style.display = 'block'; $('selfInit').style.display = 'none';
+      setBtn('camBtn', true, '📷', '📷', 'ビデオ停止', 'ビデオ開始');
+    } catch (e) {
+      statusEl.textContent = 'カメラを使えませんでした。ブラウザの許可を確認してください。';
+      setTimeout(() => { if (statusEl.textContent.startsWith('カメラ')) statusEl.textContent = ''; }, 3500);
     }
+  });
 
-    // メッセージ送信処理
-    async function handleSend() {
-      const text = userInput.value.trim();
-      if (text === '') return;
+  $('spkBtn').addEventListener('click', () => {
+    muted = !muted;
+    setBtn('spkBtn', !muted, '🔊', '🔇', '音声', '音声オフ');
+    if (muted) speechSynthesis.cancel();
+  });
 
-      const time = getCurrentTime();
+  $('ccBtn').addEventListener('click', () => {
+    ccOn = !ccOn; setBtn('ccBtn', ccOn, null, null, '字幕', '字幕オフ');
+    if (!ccOn) $('caption').textContent = '';
+  });
 
-      // ユーザーのメッセージを表示＆記録
-      appendMessage('user', text, time);
-      history.push({ sender: 'user', text: text, time: time });
-      saveHistory(history);
+  $('chatBtn').addEventListener('click', () => $('chat').classList.toggle('open'));
+  $('chatClose').addEventListener('click', () => $('chat').classList.remove('open'));
 
-      userInput.value = '';
+  $('leaveBtn').addEventListener('click', () => {
+    if (!inCall) return;
+    stopAll(); stopCam(); clearInterval(timerId); clearTimeout(capTimer);
+    inCall = false; history = []; log.innerHTML = hintHTML();
+    $('caption').textContent = ''; setState('', ''); setMicUI(true); muted = false; setBtn('spkBtn', true, '🔊', '🔇', '音声', '音声オフ');
+    $('chat').classList.remove('open'); $('timer').textContent = '00:00';
+    $('join').style.display = 'flex';
+  });
 
-      // AIに回答をもらう
-      const aiReply = await askGeminiAI(text);
-      const botTime = getCurrentTime();
+  function sendText() {
+    const t = $('text').value.trim();
+    if (!t || busy) return;
+    $('text').value = '';
+    handle(t);
+  }
+  $('send').addEventListener('click', sendText);
+  $('text').addEventListener('keydown', e => { if (e.key === 'Enter') sendText(); });
 
-      appendMessage('bot', aiReply, botTime);
-      history.push({ sender: 'bot', text: aiReply, time: botTime });
-      saveHistory(history);
-    }
-
-    sendBtn.addEventListener('click', handleSend);
-    userInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleSend();
-    });
-
-    // 会話リセット
-    resetBtn.addEventListener('click', () => {
-      if (confirm('これまでの会話を消して、最初からやり直しますか？（カギの設定は残ります）')) {
-        localStorage.removeItem(STORAGE_KEY);
-        chatBody.innerHTML = '';
-        history = [];
-
-        const welcomeText = '会話をリセットしました！何でも自由に話しかけてみてください🤖';
-        appendMessage('bot', welcomeText);
-        history.push({ sender: 'bot', text: welcomeText, time: getCurrentTime() });
-        saveHistory(history);
-      }
-    });
-  </script>
-
+  applyChar(0);
+  if ('speechSynthesis' in window) speechSynthesis.getVoices();
+  if (!SR) statusEl.textContent = 'このブラウザは音声入力に対応していません（文字入力は使えます）。';
+</script>
 </body>
 </html>
